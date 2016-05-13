@@ -12,8 +12,8 @@
 
 @protocol JHNeuralNetworkCoach <NSObject>
 
-- (void)network:(JHNeuralNetwork*)network generatedOutput:(NSArray <NSNumber *> *)output stepNumber:(NSInteger)stepNumber;
-- (NSArray <NSNumber *>*)inputForNetwork:(JHNeuralNetwork*)network stepNumber:(NSInteger)stepNumber;
+- (void)network:(JHNeuralNetwork*)network generatedOutput:(double*)output stepNumber:(NSInteger)stepNumber;
+- (double*)inputForNetwork:(JHNeuralNetwork*)network stepNumber:(NSInteger)stepNumber;
 
 @end
 
@@ -45,7 +45,7 @@
 - (instancetype)initInitialLayerWithNeuronCount:(NSUInteger)neuronCount;
 - (instancetype)initWithInputCount:(NSUInteger)inputCount
                        neuronCount:(NSUInteger)neuronCount;
-- (NSArray <NSNumber *> *)outputsForInputs:(NSArray <NSNumber *> *)inputs;
+- (double*)outputsForInputs:(double*)inputs;
 @property (nonatomic, readwrite) NSArray <NSNumber *> *weights;
 @property (nonatomic, readonly) NSUInteger inputCount;
 
@@ -56,7 +56,8 @@
 @interface JHNeuron : NSObject
 
 - (instancetype)initWithInputCount:(NSUInteger)inputCount;
-- (double)sigmoidValue:(NSArray <NSNumber *> *)inputs;
+- (double)sigmoidValue:(double*)inputs;
+- (double)singleSigmoidValue:(double)input;
 
 @property (nonatomic, strong) NSMutableArray <NSNumber *> *weights;
 

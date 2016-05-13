@@ -10,6 +10,7 @@
 
 @interface JHGameBoard () {
     int **_board;
+    double *_dataBuffer;
 }
 
 @end
@@ -24,6 +25,7 @@
         }
         _boardWidth = width;
         _boardHeight = height;
+        _dataBuffer = calloc(width*height, sizeof(double));
         [self randomize];
     }
     return self;
@@ -39,6 +41,13 @@
         }
     }
     return paths;
+}
+
+- (void)swapTileAtPosition:(Vec2)a withTile:(Vec2)b {
+    int tile = _board[a.x][a.y];
+    int tile2 = _board[b.x][b.y];
+    _board[a.x][a.y] = tile2;
+    _board[b.x][b.y] = tile;
 }
 
 - (void)setTile:(JHGameBoardTileType)tile atX:(int)x Y:(int)y {
@@ -73,14 +82,14 @@
     return arr;
 }
 
-- (NSArray <NSNumber*> *)dataRelativeToX:(int)x Y:(int)y {
-    NSMutableArray *arr = [NSMutableArray new];
-    [arr addObject:@(_board[x][y])];
+- (double*)dataRelativeToX:(int)x Y:(int)y {
+    int index = 0;
+    _dataBuffer[index] = _board[x][y];
+    index++;
     int currentX = x;
     int currentY = y;
     int currentDistance = 0;
     int currentDirection = 0;
-    int count = 0;
     // 0 = right, 1 = down, 2 = left, 3 = up
     while (1) {
         if (currentDistance > self.boardWidth && currentDistance > self.boardHeight) {
@@ -91,8 +100,8 @@
             currentY--;
         }
         if ((currentX >= 0 && currentX < self.boardWidth) && (currentY >= 0 && currentY < self.boardHeight)) {
-            count++;
-            [arr addObject:@(_board[currentX][currentY])];
+            _dataBuffer[index] = _board[currentX][currentY];
+            index++;
         }
         if (abs(currentX - x) >= currentDistance && abs(currentY - y) >= currentDistance) {
             currentDirection = (currentDirection + 1) % 4;
@@ -100,7 +109,7 @@
         currentX += currentDirection==0?1:0 + currentDirection==2?-1:0;
         currentY += currentDirection==1?1:0 + currentDirection==3?-1:0;
     }
-    return arr;
+    return _dataBuffer;
 }
 
 - (void)dealloc {
@@ -108,6 +117,7 @@
         free(_board[x]);
     }
     free(_board);
+    free(_dataBuffer);
 }
 
 @end

@@ -47,14 +47,10 @@
     return self;
 }
 
-- (NSArray <NSNumber *> *)processInputs:(NSArray*)inputs {
-    if (inputs.count != self.inputCount) {
-        NSLog(@"Invalid number of inputs for layer");
-        return @[];
-    }
-    NSArray *lastOutput = inputs;
+- (double*)processInputs:(double*)inputs {
+    double *lastOutput = inputs;
     for (int x = 0; x < self.layers.count; x++) {
-        lastOutput = [self.layers[x] outputsForInputs:lastOutput];
+        lastOutput = [self.layers[x] outputsForInputs:inputs];
     }
     return lastOutput;
 }
@@ -131,7 +127,7 @@
 - (void)calculateFitness {
     self.calculatingFitness = YES;
     NSInteger stepNumber = 0;
-    NSArray *currentInput = [self.coach inputForNetwork:self stepNumber:stepNumber];
+    double *currentInput = [self.coach inputForNetwork:self stepNumber:stepNumber];
     while (currentInput && self.calculatingFitness) {
         [self.coach network:self generatedOutput:[self processInputs:currentInput] stepNumber:stepNumber];
         stepNumber++;
@@ -141,7 +137,9 @@
 
 @end
 
-@interface JHNeuronLayer ()
+@interface JHNeuronLayer () {
+    double *_outputSpace;
+}
 
 @property (nonatomic, assign) NSUInteger inputCount;
 @property (nonatomic, strong) NSMutableArray <JHNeuron *> *neurons;
@@ -158,6 +156,7 @@
             [self.neurons addObject:[[JHNeuron alloc] initWithInputCount:1]];
         }
         _initialLayer = YES;
+        _outputSpace = calloc(neuronCount, sizeof(double));
     }
     return self;
 }
@@ -170,26 +169,22 @@
         for (int x = 0; x < neuronCount; x++) {
             [self.neurons addObject:[[JHNeuron alloc] initWithInputCount:inputCount]];
         }
+        _outputSpace = calloc(neuronCount, sizeof(double));
     }
     return self;
 }
 
-- (NSArray <NSNumber *> *)outputsForInputs:(NSArray <NSNumber *> *)inputs {
-    if (inputs.count != self.inputCount) {
-        NSLog(@"Input count doesn't match");
-        return @[];
-    }
-    NSMutableArray *outputs = [NSMutableArray new];
+- (double*)outputsForInputs:(double*)inputs {
     if (_initialLayer) {
         for (int x = 0; x < self.neurons.count; x++) {
-            [outputs addObject:@([self.neurons[x] sigmoidValue:@[@(inputs[x].doubleValue)]])];
+            _outputSpace[x] = [self.neurons[x] singleSigmoidValue:inputs[x]];
         }
     } else {
         for (int x = 0; x < self.neurons.count; x++) {
-            [outputs addObject:@([self.neurons[x] sigmoidValue:inputs])];
+            _outputSpace[x] = [self.neurons[x] sigmoidValue:inputs];
         }
     }
-    return outputs;
+    return _outputSpace;
 }
 
 - (void)setWeights:(NSMutableArray<NSNumber *> *)weights {
@@ -206,9 +201,15 @@
     return weights;
 }
 
+- (void)dealloc {
+    free(_outputSpace);
+}
+
 @end
 
-@interface JHNeuron ()
+@interface JHNeuron () {
+    double *_outputSpace;
+}
 
 @property (nonatomic, assign) NSUInteger inputCount;
 
@@ -223,6 +224,7 @@
         for (int x = 0; x < inputCount+1; x++) {
             [self.weights addObject:@(randDecimal())];
         }
+        _outputSpace = calloc(inputCount+1, sizeof(double));
     }
     return self;
 }
@@ -238,23 +240,36 @@
     return self.weights.lastObject.doubleValue;
 }
 
-- (double)activationValue:(NSArray <NSNumber *> *)inputs {
-    if (inputs.count != self.inputCount) {
-        NSLog(@"Invalid number of inputs");
-        return 0.0;
-    }
+- (double)activationValue:(double*)inputs {
     double activation = 0;
-    for (int x = 0; x < inputs.count; x++) {
-        activation += inputs[x].doubleValue * self.weights[x].doubleValue;
+    for (int x = 0; x < self.inputCount; x++) {
+        activation += inputs[x] * self.weights[x].doubleValue;
     }
     //add ni the biad
     activation += -1.0*self.weights.lastObject.doubleValue;
     return activation;
 }
 
-- (double)sigmoidValue:(NSArray <NSNumber *> *)inputs {
+- (double)singleActivationValue:(double)input {
+    double activation = 0;
+    activation += input * self.weights.firstObject.doubleValue;
+    //add ni the biad
+    activation += -1.0*self.weights.lastObject.doubleValue;
+    return activation;
+}
+
+- (double)singleSigmoidValue:(double)input {
+    return (1.0/
+            (1.0 + exp(-1.0 * ([self singleActivationValue:input]/1.0))));
+}
+
+- (double)sigmoidValue:(double*)inputs {
     return (1.0/
             (1.0 + exp(-1.0 * ([self activationValue:inputs]/1.0))));
+}
+
+- (void)dealloc {
+    free(_outputSpace);
 }
 
 @end

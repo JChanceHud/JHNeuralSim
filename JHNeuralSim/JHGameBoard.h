@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "JHConstants.h"
 
 typedef enum : NSInteger {
     JHGameBoardTileTypeUnknown,
@@ -26,9 +27,10 @@ typedef enum : NSInteger {
 - (NSArray <NSIndexPath*> *)indexPathsForTile:(JHGameBoardTileType)tile;
 - (void)setTile:(JHGameBoardTileType)tile atX:(int)x Y:(int)y;
 - (void)setAllTiles:(JHGameBoardTileType)tileType;
+- (void)swapTileAtPosition:(Vec2)a withTile:(Vec2)b;
 - (void)randomize;
 
 - (NSArray <NSNumber*> *)data;
-- (NSArray <NSNumber*> *)dataRelativeToX:(int)x Y:(int)y;
+- (double*)dataRelativeToX:(int)x Y:(int)y;
 
 @end

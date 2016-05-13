@@ -64,9 +64,10 @@ dispatch_queue_t gameQueue() {
     return v;
 }
 
-- (void)network:(JHNeuralNetwork *)network generatedOutput:(NSArray<NSNumber *> *)output stepNumber:(NSInteger)stepNumber {
-    NSInteger moveValue = MIN(MAX(0,floor(output.firstObject.doubleValue/0.25)), 3);
+- (void)network:(JHNeuralNetwork *)network generatedOutput:(double*)output stepNumber:(NSInteger)stepNumber {
+    NSInteger moveValue = MIN(MAX(0,floor(output[0]/0.25)), 3);
     Vec2 player = [self currentPlayerIndexPath];
+    Vec2 oldPlayer = player;
     Vec2 cake = [self currentCakeIndexPath];
     switch (moveValue) {
         case 0:
@@ -89,9 +90,16 @@ dispatch_queue_t gameQueue() {
         [network finishCalculatingFitness];
         [self resetBoard];
     }
+    if (oldPlayer.x == player.x && oldPlayer.y == player.y) {
+        network.fitness = 0;
+        [network finishCalculatingFitness];
+        NSLog(@"%f", network.fitness);
+        [self resetBoard];
+    }
+    [self.board swapTileAtPosition:oldPlayer withTile:player];
 }
 
-- (NSArray <NSNumber *>*)inputForNetwork:(JHNeuralNetwork *)network stepNumber:(NSInteger)stepNumber {
+- (double*)inputForNetwork:(JHNeuralNetwork *)network stepNumber:(NSInteger)stepNumber {
     Vec2 player = [self currentPlayerIndexPath];
     return [self.board dataRelativeToX:player.x Y:player.y];
 }
