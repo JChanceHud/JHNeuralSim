@@ -1,0 +1,28 @@
+//
+//  JHTileNode.m
+//  JHNeuralSim
+//
+//  Created by Chance Hudson on 5/8/16.
+//  Copyright © 2016 Chance Hudson. All rights reserved.
+//
+
+#import "JHTileNode.h"
+
+@implementation JHTileNode
+
++ (instancetype)tileWithType:(JHTileType)type {
+    JHTileNode *n = [self new];
+    n.tileType = type;
+    return n;
+}
+
+- (void)setTileType:(JHTileType)tileType {
+    _tileType = tileType;
+    if (tileType == JHTileTypeGrass) {
+        self.color = [NSColor redColor];
+    } else {
+        self.color = [NSColor blueColor];
+    }
+}
+
+@end
