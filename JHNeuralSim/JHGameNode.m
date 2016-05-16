@@ -8,16 +8,26 @@
 
 #import "JHGameNode.h"
 #import "JHTileNode.h"
+#import "JHGameBoard.h"
+
+@interface JHGameNode ()
+
+@property (nonatomic, strong) JHGame *game;
+
+@end
 
 @implementation JHGameNode
 
 - (instancetype)initWithSize:(Vec2)size tileSize:(CGSize)tileSize {
     if ((self = [super init])) {
+        self.game = [JHGame new];
+        self.game.observer = self;
+        [self.game beginSimulating];
         self.tiles = [NSMutableArray new];
         for (int x = 0; x < size.x; x++) {
             [self.tiles addObject:[NSMutableArray new]];
             for (int y = 0; y < size.y; y++) {
-                JHTileNode *tile = [JHTileNode tileWithType:(x%2?JHTileTypeDirt:JHTileTypeGrass)];
+                JHTileNode *tile = [JHTileNode tileWithType:JHGameBoardTileTypeGrass];
                 tile.tilePosition = (Vec2){x,y};
                 tile.tileSize = tileSize;
                 [self.tiles[x] addObject:tile];
@@ -41,6 +51,18 @@
             currentY += self.tileSize.height;
         }
         currentX += self.tileSize.width;
+    }
+}
+
+- (void)gameEpochPassed:(JHGame*)game {
+    NSLog(@"Game epoch passed: %li", game.evolver.currentGeneration);
+}
+
+- (void)gameBoardUpdated:(JHGame*)game {
+    for (int x = 0; x < game.board.boardWidth; x++) {
+        for (int y = 0; y < game.board.boardHeight; y++) {
+            [self.tiles[x][y] setTileType:[game.board tileAtX:x Y:y]];
+        }
     }
 }
 

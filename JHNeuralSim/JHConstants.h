@@ -22,5 +22,8 @@ typedef struct Vec4 {
 } Vec4;
 
 double randDecimal();
+double randSignedDecimal();
+
+double sigmoid(double input);
 
 #endif /* JHConstants_h */

@@ -8,15 +8,11 @@
 
 #import <SpriteKit/SpriteKit.h>
 #import "JHSpriteNode.h"
-
-typedef enum JHTileType {
-    JHTileTypeGrass,
-    JHTileTypeDirt
-} JHTileType;
+#import "JHGameBoard.h"
 
 @interface JHTileNode : JHSpriteNode
 
-+ (instancetype)tileWithType:(JHTileType)type;
-@property (nonatomic, assign) JHTileType tileType;
++ (instancetype)tileWithType:(JHGameBoardTileType)type;
+@property (nonatomic, assign) JHGameBoardTileType tileType;
 
 @end

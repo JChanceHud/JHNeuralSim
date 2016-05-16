@@ -8,8 +8,9 @@
 
 #import <SpriteKit/SpriteKit.h>
 #import "JHConstants.h"
+#import "JHGame.h"
 
-@interface JHGameNode : SKSpriteNode
+@interface JHGameNode : SKSpriteNode <JHGameObserver>
 
 - (instancetype)initWithSize:(Vec2)size tileSize:(CGSize)tileSize;
 

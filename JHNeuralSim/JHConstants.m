@@ -14,3 +14,11 @@ double randDecimal() {
     return ((double)arc4random() / ARC4RANDOM_MAX);
 }
 
+double randSignedDecimal() {
+    return (((double)arc4random() / ARC4RANDOM_MAX) * 2.0) - 1.0;
+}
+
+double sigmoid(double input) {
+    return (1.0/
+     (1.0 + exp(-1.0 * input)));
+}

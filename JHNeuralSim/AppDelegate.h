@@ -8,13 +8,10 @@
 
 #import <Cocoa/Cocoa.h>
 #import <SpriteKit/SpriteKit.h>
-#import "JHGame.h"
 
-@interface AppDelegate : NSObject <NSApplicationDelegate, JHGameObserver>
+@interface AppDelegate : NSObject <NSApplicationDelegate>
 
 @property (assign) IBOutlet NSWindow *window;
 @property (assign) IBOutlet SKView *skView;
-
-- (void)gameEpochPassed:(JHGame *)game;
 
 @end

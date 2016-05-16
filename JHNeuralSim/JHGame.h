@@ -18,6 +18,7 @@
 @protocol JHGameObserver <NSObject>
 
 - (void)gameEpochPassed:(JHGame*)game;
+- (void)gameBoardUpdated:(JHGame*)game;
 
 @end
 

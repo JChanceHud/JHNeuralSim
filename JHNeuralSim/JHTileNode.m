@@ -10,18 +10,22 @@
 
 @implementation JHTileNode
 
-+ (instancetype)tileWithType:(JHTileType)type {
++ (instancetype)tileWithType:(JHGameBoardTileType)type {
     JHTileNode *n = [self new];
     n.tileType = type;
     return n;
 }
 
-- (void)setTileType:(JHTileType)tileType {
+- (void)setTileType:(JHGameBoardTileType)tileType {
     _tileType = tileType;
-    if (tileType == JHTileTypeGrass) {
+    if (tileType == JHGameBoardTileTypeGrass) {
+        self.color = [NSColor greenColor];
+    } else if (tileType == JHGameBoardTileTypePlayer) {
+        self.color = [NSColor whiteColor];
+    } else if (tileType == JHGameBoardTileTypeCake) {
         self.color = [NSColor redColor];
     } else {
-        self.color = [NSColor blueColor];
+        self.color = [NSColor blackColor];
     }
 }
 

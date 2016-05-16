@@ -19,7 +19,7 @@
 @implementation GameScene
 
 -(void)didMoveToView:(SKView *)view {
-    self.gameNode = [[JHGameNode alloc] initWithSize:(Vec2){20,20} tileSize:CGSizeMake(20, 20)];
+    self.gameNode = [[JHGameNode alloc] initWithSize:(Vec2){50,50} tileSize:CGSizeMake(15, 15)];
     [self addChild:self.gameNode];
 }
 

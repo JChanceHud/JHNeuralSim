@@ -67,6 +67,8 @@
     for (JHNeuralNetwork *network in self.genomes) {
         [network calculateFitness];
     }
+    NSLog(@"Average fitness: %f", [self averageFitness]);
+    NSLog(@"Breeding....");
     [self sortGenomes];
     NSMutableArray *bestGenomes = [NSMutableArray new];
     int countToInsert = 2;
@@ -91,7 +93,7 @@
         
         NSArray <JHNeuralNetwork*> *children = [mom mateWith:dad];
         [newGenomes addObjectsFromArray:children];
-        if (newGenomes.count >= self.genomes.count) {
+        if (newGenomes.count > self.genomes.count) {
             [newGenomes removeLastObject];
         }
     }
@@ -117,6 +119,10 @@
         total += genome.fitness;
     }
     return total;
+}
+
+- (double)averageFitness {
+    return [self totalFitness] / (double)self.genomes.count;
 }
 
 - (void)sortGenomes {

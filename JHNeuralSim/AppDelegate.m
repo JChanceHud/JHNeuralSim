@@ -26,14 +26,6 @@
     
     self.skView.showsFPS = YES;
     self.skView.showsNodeCount = YES;
-    
-    JHGame *game = [JHGame new];
-    game.observer = self;
-    [game beginSimulating];
-}
-
-- (void)gameEpochPassed:(JHGame *)game {
-    NSLog(@"Game epoch passed: %li", game.evolver.currentGeneration);
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {

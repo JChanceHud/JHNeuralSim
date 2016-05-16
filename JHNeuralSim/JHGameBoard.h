@@ -14,6 +14,7 @@ typedef enum : NSInteger {
     JHGameBoardTileTypeGrass,
     JHGameBoardTileTypePlayer,
     JHGameBoardTileTypeCake,
+    JHGameBoardTileTypeWall,
     TILE_TYPE_COUNT
 } JHGameBoardTileType;
 
@@ -26,9 +27,11 @@ typedef enum : NSInteger {
 
 - (NSArray <NSIndexPath*> *)indexPathsForTile:(JHGameBoardTileType)tile;
 - (void)setTile:(JHGameBoardTileType)tile atX:(int)x Y:(int)y;
+- (void)setBorderTile:(JHGameBoardTileType)tile;
 - (void)setAllTiles:(JHGameBoardTileType)tileType;
 - (void)swapTileAtPosition:(Vec2)a withTile:(Vec2)b;
 - (void)randomize;
+- (JHGameBoardTileType)tileAtX:(int)x Y:(int)y;
 
 - (NSArray <NSNumber*> *)data;
 - (double*)dataRelativeToX:(int)x Y:(int)y;

@@ -9,10 +9,16 @@
 #import "JHNeuralNetwork.h"
 #import "JHConstants.h"
 
-@interface JHNeuralNetwork ()
+#import <Accelerate/Accelerate.h>
+
+@interface JHNeuralNetwork () {
+    double *_inputBuffer;
+    double *_weights;
+}
 
 @property (nonatomic, assign) NSUInteger inputCount;
 @property (nonatomic, assign) NSUInteger outputCount;
+@property (nonatomic, assign) NSUInteger weightCount;
 
 @property (nonatomic, strong) NSMutableArray <JHNeuronLayer *> *layers;
 
@@ -23,26 +29,41 @@
 @implementation JHNeuralNetwork
 
 - (instancetype)initWithLayerStructure:(NSArray <NSNumber *> *)layerStructure {
-//                           weights:(NSArray <NSNumber *> *)weights {
     if ((self = [super init])) {
-        self.inputCount = layerStructure.firstObject.integerValue;
-        self.outputCount = layerStructure.lastObject.integerValue;
-        self.layers = [NSMutableArray new];
+        int weightCount = 0;
         for (int x = 0; x < layerStructure.count; x++) {
             if (x == 0) {
-                [self.layers addObject:[[JHNeuronLayer alloc] initInitialLayerWithNeuronCount:layerStructure[x].unsignedIntegerValue]];
+                weightCount += layerStructure[x].integerValue * 2; // account for the bias
             } else {
-                [self.layers addObject:[[JHNeuronLayer alloc] initWithInputCount:layerStructure[x-1].unsignedIntegerValue neuronCount:layerStructure[x].unsignedIntegerValue]];
+                weightCount += (layerStructure[x-1].integerValue + 1 /* the bias */) * layerStructure[x].integerValue;
             }
+        }
+        self.weightCount = weightCount;
+        _weights = calloc(weightCount, sizeof(double));
+        self.inputCount = layerStructure.firstObject.integerValue;
+        _inputBuffer = calloc(self.inputCount+1, sizeof(double));
+        _inputBuffer[self.inputCount] = -1.0;
+        self.outputCount = layerStructure.lastObject.integerValue;
+        self.layers = [NSMutableArray new];
+        int offset = 0;
+        for (int x = 0; x < layerStructure.count; x++) {
+            JHNeuronLayer *layer;
+            if (x == 0) {
+                layer = [[JHNeuronLayer alloc] initInitialLayerWithNeuronCount:layerStructure[x].unsignedIntegerValue weightPtr:_weights offset:offset];
+            } else {
+                layer = [[JHNeuronLayer alloc] initWithInputCount:layerStructure[x-1].unsignedIntegerValue neuronCount:layerStructure[x].unsignedIntegerValue weightPtr:_weights offset:offset];
+            }
+            [self.layers addObject:layer];
+            offset += layer.weightCount;
         }
     }
     return self;
 }
 
 - (instancetype)initWithLayerStructure:(NSArray<NSNumber *> *)layerStructure
-                               weights:(NSArray <NSNumber*> *)weights {
+                               weights:(double*)weights {
     if ((self = [self initWithLayerStructure:layerStructure])) {
-        self.weights = [weights mutableCopy];
+        cblas_dcopy((int)self.weightCount, weights, 1, _weights, 1);
     }
     return self;
 }
@@ -50,22 +71,15 @@
 - (double*)processInputs:(double*)inputs {
     double *lastOutput = inputs;
     for (int x = 0; x < self.layers.count; x++) {
-        lastOutput = [self.layers[x] outputsForInputs:inputs];
+        lastOutput = [self.layers[x] outputsForInputs:lastOutput];
     }
     return lastOutput;
 }
 
-- (void)setWeights:(NSArray<NSNumber *> *)weights {
-    id copiedWeights = [[NSMutableArray alloc] initWithArray:weights copyItems:YES];
-    for (JHNeuronLayer *layer in self.layers) {
-        [layer setWeights:copiedWeights];
-    }
-}
-
 - (NSArray <NSNumber *> *)weights {
     NSMutableArray *weights = [NSMutableArray new];
-    for (JHNeuronLayer *layer in self.layers) {
-        [weights addObjectsFromArray:layer.weights];
+    for (int x = 0; x < weights.count; x++) {
+        [weights addObject:@(_weights[x])];
     }
     return weights;
 }
@@ -73,9 +87,9 @@
 - (instancetype)copyWithZone:(NSZone *)zone {
     NSMutableArray *layerStructure = [NSMutableArray new];
     for (JHNeuronLayer *layer in self.layers) {
-        [layerStructure addObject:@(layer.inputCount)];
+        [layerStructure addObject:@(layer.neuronCount)];
     }
-    JHNeuralNetwork *network = [[JHNeuralNetwork alloc] initWithLayerStructure:layerStructure weights:self.weights];
+    JHNeuralNetwork *network = [[JHNeuralNetwork alloc] initWithLayerStructure:layerStructure weights:_weights];
     network.coach = self.coach;
     network.mutationRate = self.mutationRate;
     network.maxMutation = self.maxMutation;
@@ -84,13 +98,13 @@
 }
 
 - (void)mutate {
-    NSMutableArray *weights = self.weights;
-    for (int x = 0; x < self.weights.count; x++) {
+    double *mutationValues = calloc(self.weightCount, sizeof(double));
+    for (int x = 0; x < self.weightCount; x++) {
         if (randDecimal() > self.mutationRate) continue;
-        NSNumber *newWeight = @(((randDecimal()*2)-1)*self.maxMutation + self.weights[x].doubleValue);
-        [weights replaceObjectAtIndex:x withObject:newWeight];
+        mutationValues[x] = randSignedDecimal()*self.maxMutation;
     }
-    [self setWeights:weights];
+    cblas_daxpy((int)self.weightCount, 1.0, mutationValues, 1, _weights, 1);
+    free(mutationValues);
 }
 
 - (NSArray <JHNeuralNetwork *>*)mateWith:(JHNeuralNetwork *)network {
@@ -100,20 +114,23 @@
     JHNeuralNetwork *child1 = [self copy];
     JHNeuralNetwork *child2 = [network copy];
     
-    NSMutableArray *child1Weights = child1.weights;
-    NSMutableArray *child2Weights = child2.weights;
+    double *child1Weights = child1->_weights;
+    double *child2Weights = child2->_weights;
     
-    NSMutableArray *networkWeights = network.weights;
-    NSMutableArray *selfWeights = self.weights;
+    double *networkWeights = network->_weights;
     
     int crossoverPoint = floor(randDecimal() * (self.weights.count-1));
+//    cblas_dcopy(crossoverPoint, networkWeights, 1, child1Weights, 1);
+//    cblas_dcopy(crossoverPoint, _weights, 1, child2Weights, 1);
+//    cblas_dcopy((int)self.weightCount-crossoverPoint, &networkWeights[crossoverPoint], 1, &child2Weights[crossoverPoint], 1);
+//    cblas_dcopy((int)self.weightCount-crossoverPoint, &_weights[crossoverPoint], 1, &child1Weights[crossoverPoint], 1);
     for (int x = 0; x < crossoverPoint; x++) {
-        [child1Weights replaceObjectAtIndex:x withObject:networkWeights[x]];
-        [child2Weights replaceObjectAtIndex:x withObject:selfWeights[x]];
+        child1Weights[x] = networkWeights[x];
+        child2Weights[x] = _weights[x];
     }
-    for (int x = 0; x < crossoverPoint; x++) {
-        [child1Weights replaceObjectAtIndex:x withObject:networkWeights[x]];
-        [child2Weights replaceObjectAtIndex:x withObject:selfWeights[x]];
+    for (int x = crossoverPoint; x < self.weightCount; x++) {
+        child2Weights[x] = networkWeights[x];
+        child1Weights[x] = _weights[x];
     }
     [child1 mutate];
     [child2 mutate];
@@ -129,15 +146,22 @@
     NSInteger stepNumber = 0;
     double *currentInput = [self.coach inputForNetwork:self stepNumber:stepNumber];
     while (currentInput && self.calculatingFitness) {
-        [self.coach network:self generatedOutput:[self processInputs:currentInput] stepNumber:stepNumber];
+        cblas_dcopy((int)self.inputCount, currentInput, 1, _inputBuffer, 1);
+        [self.coach network:self generatedOutput:[self processInputs:_inputBuffer] stepNumber:stepNumber];
         stepNumber++;
         currentInput = [self.coach inputForNetwork:self stepNumber:stepNumber];
     }
 }
 
+- (void)dealloc {
+    free(_weights);
+    free(_inputBuffer);
+}
+
 @end
 
 @interface JHNeuronLayer () {
+    double *_weights;
     double *_outputSpace;
 }
 
@@ -148,12 +172,15 @@
 
 @implementation JHNeuronLayer : NSObject
 
-- (instancetype)initInitialLayerWithNeuronCount:(NSUInteger)neuronCount {
+- (instancetype)initInitialLayerWithNeuronCount:(NSUInteger)neuronCount weightPtr:(double*)ptr offset:(int)offset {
     if ((self = [super init])) {
+        _weights = &ptr[offset];
         self.inputCount = neuronCount;
         self.neurons = [NSMutableArray new];
         for (int x = 0; x < neuronCount; x++) {
-            [self.neurons addObject:[[JHNeuron alloc] initWithInputCount:1]];
+            JHNeuron *neuron = [[JHNeuron alloc] initWithInputCount:1 weightPtr:ptr offset:offset];
+            [self.neurons addObject:neuron];
+            offset += neuron.weightCount;
         }
         _initialLayer = YES;
         _outputSpace = calloc(neuronCount, sizeof(double));
@@ -162,12 +189,17 @@
 }
 
 - (instancetype)initWithInputCount:(NSUInteger)inputCount
-                       neuronCount:(NSUInteger)neuronCount {
+                       neuronCount:(NSUInteger)neuronCount
+                         weightPtr:(double*)ptr
+                            offset:(int)offset {
     if ((self = [super init])) {
+        _weights = &ptr[offset];
         self.inputCount = inputCount;
         self.neurons = [NSMutableArray new];
         for (int x = 0; x < neuronCount; x++) {
-            [self.neurons addObject:[[JHNeuron alloc] initWithInputCount:inputCount]];
+            JHNeuron *neuron = [[JHNeuron alloc] initWithInputCount:inputCount weightPtr:ptr offset:offset];
+            [self.neurons addObject:neuron];
+            offset += neuron.weightCount;
         }
         _outputSpace = calloc(neuronCount, sizeof(double));
     }
@@ -175,30 +207,44 @@
 }
 
 - (double*)outputsForInputs:(double*)inputs {
+    //need a 3000 x 2500 matrix
     if (_initialLayer) {
         for (int x = 0; x < self.neurons.count; x++) {
             _outputSpace[x] = [self.neurons[x] singleSigmoidValue:inputs[x]];
         }
     } else {
-        for (int x = 0; x < self.neurons.count; x++) {
-            _outputSpace[x] = [self.neurons[x] sigmoidValue:inputs];
+        cblas_dgemv(CblasRowMajor, CblasNoTrans, (int)self.neuronCount, (int)self.neurons.firstObject.weightCount, 1.0, _weights, (int)self.neurons.firstObject.weightCount, inputs, 1, 0.0, _outputSpace, 1);
+        for (int x = 0; x < self.neuronCount; x++) {
+            _outputSpace[x] = sigmoid(_outputSpace[x]);
         }
     }
     return _outputSpace;
 }
 
-- (void)setWeights:(NSMutableArray<NSNumber *> *)weights {
-    for (JHNeuron *neuron in self.neurons) {
-        [neuron setWeights:weights];
-    }
-}
+//- (void)setWeights:(NSMutableArray<NSNumber *> *)weights {
+//    for (JHNeuron *neuron in self.neurons) {
+//        [neuron setWeights:weights];
+//    }
+//}
+//
+//- (NSArray <NSNumber *> *)weights {
+//    NSMutableArray *weights = [NSMutableArray new];
+//    for (JHNeuron *neuron in self.neurons) {
+//        [weights addObjectsFromArray:neuron.weights];
+//    }
+//    return weights;
+//}
 
-- (NSArray <NSNumber *> *)weights {
-    NSMutableArray *weights = [NSMutableArray new];
+- (NSUInteger)weightCount {
+    NSUInteger count = 0;
     for (JHNeuron *neuron in self.neurons) {
-        [weights addObjectsFromArray:neuron.weights];
+        count += neuron.weightCount;
     }
-    return weights;
+    return count;
+}
+    
+- (NSUInteger)neuronCount {
+    return self.neurons.count;
 }
 
 - (void)dealloc {
@@ -208,6 +254,7 @@
 @end
 
 @interface JHNeuron () {
+    double *_weights;
     double *_outputSpace;
 }
 
@@ -217,44 +264,54 @@
 
 @implementation JHNeuron : NSObject
 
-- (instancetype)initWithInputCount:(NSUInteger)inputCount {
+- (instancetype)initWithInputCount:(NSUInteger)inputCount weightPtr:(double*)ptr offset:(int)offset {
     if ((self = [super init])) {
         self.inputCount = inputCount;
-        _weights = [NSMutableArray new];
+        _weights = &ptr[offset];
         for (int x = 0; x < inputCount+1; x++) {
-            [self.weights addObject:@(randDecimal())];
+            _weights[x] = randSignedDecimal();
         }
         _outputSpace = calloc(inputCount+1, sizeof(double));
     }
     return self;
 }
 
+- (NSUInteger)weightCount {
+    return self.inputCount+1;
+}
+
 - (void)setWeights:(NSMutableArray<NSNumber *> *)weights {
-    NSAssert(_inputCount == weights.count, @"Invalid number of weights");
-    NSIndexSet *targetIndexes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, self.inputCount)];
-    _weights = [NSMutableArray arrayWithArray:[weights objectsAtIndexes:targetIndexes]];
-    [weights removeObjectsAtIndexes:targetIndexes];
+    if (_inputCount+1 > weights.count) {
+        NSLog(@"test");
+    }
+    NSAssert(_inputCount+1 <= weights.count, @"Invalid number of weights");
+    NSMutableIndexSet *indexes = [NSMutableIndexSet new];
+    for (int x = 0; x < _inputCount+1; x++) {
+        _weights[x] = weights[x].doubleValue;
+        [indexes addIndex:x];
+    }
+    [weights removeObjectsAtIndexes:indexes];
 }
 
 - (double)bias {
-    return self.weights.lastObject.doubleValue;
+    return _weights[_inputCount];
 }
 
 - (double)activationValue:(double*)inputs {
     double activation = 0;
     for (int x = 0; x < self.inputCount; x++) {
-        activation += inputs[x] * self.weights[x].doubleValue;
+        activation += inputs[x] * _weights[x];
     }
     //add ni the biad
-    activation += -1.0*self.weights.lastObject.doubleValue;
+    activation += -1.0*_weights[self.inputCount];
     return activation;
 }
 
 - (double)singleActivationValue:(double)input {
     double activation = 0;
-    activation += input * self.weights.firstObject.doubleValue;
+    activation += input * _weights[0];
     //add ni the biad
-    activation += -1.0*self.weights.lastObject.doubleValue;
+    activation += -1.0*_weights[self.inputCount];
     return activation;
 }
 

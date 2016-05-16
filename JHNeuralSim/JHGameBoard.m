@@ -43,6 +43,10 @@
     return paths;
 }
 
+- (JHGameBoardTileType)tileAtX:(int)x Y:(int)y {
+    return _board[x][y];
+}
+
 - (void)swapTileAtPosition:(Vec2)a withTile:(Vec2)b {
     int tile = _board[a.x][a.y];
     int tile2 = _board[b.x][b.y];
@@ -54,6 +58,28 @@
     NSParameterAssert(x >= 0 && x < self.boardWidth);
     NSParameterAssert(y >= 0 && y < self.boardHeight);
     _board[x][y] = tile;
+}
+
+- (void)setBorderTile:(JHGameBoardTileType)tile {
+    int x = 1;
+    int y = 0;
+    int xDelta = 1;
+    int yDelta = 0;
+    while (x != 0 || y != 0) {
+        _board[x][y] = tile;
+        if (x == self.boardWidth-1 && y == 0) {
+            xDelta = 0;
+            yDelta = 1;
+        } else if (y == self.boardHeight-1 && x == self.boardWidth-1) {
+            xDelta = -1;
+            yDelta = 0;
+        } else if (y == self.boardHeight-1 && x == 0) {
+            yDelta = -1;
+            xDelta = 0;
+        }
+        x += xDelta;
+        y += yDelta;
+    }
 }
 
 - (void)setAllTiles:(JHGameBoardTileType)tileType {
@@ -92,7 +118,7 @@
     int currentDirection = 0;
     // 0 = right, 1 = down, 2 = left, 3 = up
     while (1) {
-        if (currentDistance > self.boardWidth && currentDistance > self.boardHeight) {
+        if (currentDistance > 25 || index > self.boardHeight*self.boardWidth) {
             break;
         }
         if (currentX == x && currentY <= y) {
@@ -101,6 +127,9 @@
         }
         if ((currentX >= 0 && currentX < self.boardWidth) && (currentY >= 0 && currentY < self.boardHeight)) {
             _dataBuffer[index] = _board[currentX][currentY];
+            index++;
+        } else {
+            _dataBuffer[index] = JHGameBoardTileTypeUnknown;
             index++;
         }
         if (abs(currentX - x) >= currentDistance && abs(currentY - y) >= currentDistance) {

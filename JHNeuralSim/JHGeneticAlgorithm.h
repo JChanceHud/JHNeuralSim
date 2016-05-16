@@ -23,6 +23,7 @@
                            maxMutation:(double)maxMutation;
 
 @property (nonatomic, readonly) NSUInteger currentGeneration;
+@property (nonatomic, readonly) double averageFitness;
 
 - (void)epoch;
 - (void)setCoach:(id <JHNeuralNetworkCoach>)coach;

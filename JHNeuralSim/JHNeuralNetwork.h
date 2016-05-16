@@ -23,9 +23,9 @@
 //                           weights:(NSArray <NSNumber *> *)weights;
 
 - (instancetype)initWithLayerStructure:(NSArray<NSNumber *> *)layerStructure
-                               weights:(NSArray <NSNumber*> *)weights;
+                               weights:(double*)weights;
 
-@property (nonatomic, readwrite) NSMutableArray <NSNumber *> *weights;
+@property (nonatomic, readonly) NSMutableArray <NSNumber *> *weights;
 
 @property (nonatomic, weak) id <JHNeuralNetworkCoach> coach;
 - (void)calculateFitness;
@@ -42,12 +42,15 @@
 
 @interface JHNeuronLayer : NSObject
 
-- (instancetype)initInitialLayerWithNeuronCount:(NSUInteger)neuronCount;
+- (instancetype)initInitialLayerWithNeuronCount:(NSUInteger)neuronCount weightPtr:(double*)ptr offset:(int)offset;
 - (instancetype)initWithInputCount:(NSUInteger)inputCount
-                       neuronCount:(NSUInteger)neuronCount;
+                       neuronCount:(NSUInteger)neuronCount
+                         weightPtr:(double*)ptr
+                            offset:(int)offset;
 - (double*)outputsForInputs:(double*)inputs;
-@property (nonatomic, readwrite) NSArray <NSNumber *> *weights;
 @property (nonatomic, readonly) NSUInteger inputCount;
+@property (nonatomic, readonly) NSUInteger neuronCount;
+@property (nonatomic, readonly) NSUInteger weightCount;
 
 @property (nonatomic, readonly) BOOL initialLayer;
 
@@ -55,10 +58,10 @@
 
 @interface JHNeuron : NSObject
 
-- (instancetype)initWithInputCount:(NSUInteger)inputCount;
+- (instancetype)initWithInputCount:(NSUInteger)inputCount weightPtr:(double*)ptr offset:(int)offset;
 - (double)sigmoidValue:(double*)inputs;
 - (double)singleSigmoidValue:(double)input;
 
-@property (nonatomic, strong) NSMutableArray <NSNumber *> *weights;
+@property (nonatomic, readonly) NSUInteger weightCount;
 
 @end
