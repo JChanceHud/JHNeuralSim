@@ -20,9 +20,6 @@
 
 - (instancetype)initWithSize:(Vec2)size tileSize:(CGSize)tileSize {
     if ((self = [super init])) {
-        self.game = [JHGame new];
-        self.game.observer = self;
-        [self.game beginSimulating];
         self.tiles = [NSMutableArray new];
         for (int x = 0; x < size.x; x++) {
             [self.tiles addObject:[NSMutableArray new]];

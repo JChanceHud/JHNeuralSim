@@ -19,17 +19,6 @@
 @implementation GameScene
 
 -(void)didMoveToView:(SKView *)view {
-    self.gameNode = [[JHGameNode alloc] initWithSize:(Vec2){50,50} tileSize:CGSizeMake(15, 15)];
-    [self addChild:self.gameNode];
-}
-
--(void)mouseDown:(NSEvent *)theEvent {
-     /* Called when a mouse click occurs */
-   
-}
-
--(void)update:(CFTimeInterval)currentTime {
-    /* Called before each frame is rendered */
 }
 
 @end

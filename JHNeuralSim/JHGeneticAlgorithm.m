@@ -9,6 +9,7 @@
 #import "JHGeneticAlgorithm.h"
 #import "JHConstants.h"
 #import "JHNeuralNetwork.h"
+#import <Bolts/Bolts.h>
 
 @interface JHGeneticAlgorithm ()
 
@@ -57,16 +58,49 @@
     return self;
 }
 
+- (instancetype)initWithCoder:(NSCoder *)aDecoder {
+    if ((self = [super init])) {
+        self.genomes = [NSMutableArray arrayWithArray:[aDecoder decodeObjectForKey:@"genomes"]];
+        self.currentGeneration = [aDecoder decodeIntegerForKey:@"currentGeneration"];
+        self.mutationRate = [aDecoder decodeDoubleForKey:@"mutationRate"];
+        self.crossoverRate = [aDecoder decodeDoubleForKey:@"crossoverRate"];
+        self.maxMutation = [aDecoder decodeDoubleForKey:@"maxMutation"];
+    }
+    return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)aCoder {
+    [aCoder encodeObject:self.genomes forKey:@"genomes"];
+    [aCoder encodeInteger:self.currentGeneration forKey:@"currentGeneration"];
+    [aCoder encodeDouble:self.mutationRate forKey:@"mutationRate"];
+    [aCoder encodeDouble:self.crossoverRate forKey:@"crossoverRate"];
+    [aCoder encodeDouble:self.maxMutation forKey:@"maxMutation"];
+}
+
+- (BFTask*)saveToFile:(NSString*)file {
+    return [[BFTask taskWithResult:nil] continueWithSuccessBlock:^id _Nullable(BFTask * _Nonnull task) {
+        [NSKeyedArchiver archiveRootObject:self toFile:file];
+        return nil;
+    }];
+}
+
 - (void)setCoach:(id <JHNeuralNetworkCoach>)coach {
     for (JHNeuralNetwork *network in self.genomes) {
         network.coach = coach;
     }
 }
 
-- (void)epoch {
+- (void)calculateFitnesses {
     for (JHNeuralNetwork *network in self.genomes) {
         [network calculateFitness];
     }
+    _hasCalculatedFitnessesForGeneration = YES;
+}
+
+- (void)epoch {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.observer geneticAlgorithmWillBeginBreeding:self];
+    });
     NSLog(@"Average fitness: %f", [self averageFitness]);
     NSLog(@"Breeding....");
     [self sortGenomes];
@@ -88,8 +122,8 @@
     [self.genomes removeObjectsInRange:NSMakeRange(0, insertedCount)];
     NSMutableArray *newGenomes = [NSMutableArray new];
     while (newGenomes.count < self.genomes.count) {
-        JHNeuralNetwork *mom = [self semirandomGenome];
-        JHNeuralNetwork *dad = [self semirandomGenome];
+        JHNeuralNetwork *mom = [self semirandomGenomeExcluding:nil];
+        JHNeuralNetwork *dad = [self semirandomGenomeExcluding:mom];
         
         NSArray <JHNeuralNetwork*> *children = [mom mateWith:dad];
         [newGenomes addObjectsFromArray:children];
@@ -99,18 +133,29 @@
     }
     self.genomes = newGenomes;
     self.currentGeneration++;
+    _hasCalculatedFitnessesForGeneration = NO;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.observer geneticAlgorithmDidFinishedBreeding:self];
+    });
 }
 
-- (JHNeuralNetwork*)semirandomGenome {
+- (JHNeuralNetwork*)semirandomGenomeExcluding:(id)g {
     double randFitness = randDecimal() * [self totalFitness];
     double fitnessSoFar = 0;
-    for (JHNeuralNetwork *genome in self.genomes) {
+    for (int x = 0; x < self.genomes.count; x++ ) {
+        JHNeuralNetwork *genome = self.genomes[x];
         fitnessSoFar += genome.fitness;
-        if (fitnessSoFar >= randFitness) {
+        if (fitnessSoFar >= randFitness && genome != g) {
             return genome;
+        } else if (fitnessSoFar >= randFitness && x == self.genomes.count-1) {
+            return self.genomes[x-1];
         }
     }
-    return self.genomes[(int)floor(randDecimal()*self.genomes.count)];
+    id genome = g;
+    while (genome == g) {
+        genome = self.genomes[(int)floor(randDecimal()*self.genomes.count)];
+    }
+    return genome;
 }
 
 - (double)totalFitness {

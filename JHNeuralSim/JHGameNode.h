@@ -10,12 +10,14 @@
 #import "JHConstants.h"
 #import "JHGame.h"
 
-@interface JHGameNode : SKSpriteNode <JHGameObserver>
+@interface JHGameNode : SKSpriteNode
 
 - (instancetype)initWithSize:(Vec2)size tileSize:(CGSize)tileSize;
 
 @property (nonatomic, strong) NSMutableArray <NSMutableArray *> *tiles;
 @property (nonatomic, assign) CGSize tileSize;
 @property (nonatomic, strong) NSMutableArray *actors;
+
+- (void)gameBoardUpdated:(JHGame*)game;
 
 @end

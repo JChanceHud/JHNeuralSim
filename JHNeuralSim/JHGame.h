@@ -19,10 +19,13 @@
 
 - (void)gameEpochPassed:(JHGame*)game;
 - (void)gameBoardUpdated:(JHGame*)game;
+- (void)game:(JHGame*)game calculatedFitnessForNetwork:(JHNeuralNetwork*)network;
 
 @end
 
 @interface JHGame : NSObject <JHNeuralNetworkCoach>
+
+- (instancetype)initWithGeneticAlgorithm:(JHGeneticAlgorithm*)algorithm;
 
 @property (nonatomic, readonly) JHGameBoard *board;
 @property (nonatomic, readonly) JHGeneticAlgorithm *evolver;

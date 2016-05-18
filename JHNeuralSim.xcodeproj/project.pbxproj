@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1AC6D055FE68D8E5E21004D7 /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9972426A839C0F8F97500F13 /* libPods.a */; };
+		4C071D861CEC220300EFEE93 /* JHGameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C071D851CEC220300EFEE93 /* JHGameViewController.m */; };
 		4C59E7001CDFB4FB001A1103 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C59E6FF1CDFB4FB001A1103 /* AppDelegate.m */; };
 		4C59E7031CDFB4FB001A1103 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C59E7021CDFB4FB001A1103 /* main.m */; };
 		4C59E7061CDFB4FB001A1103 /* GameScene.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C59E7051CDFB4FB001A1103 /* GameScene.m */; };
@@ -41,6 +42,8 @@
 /* Begin PBXFileReference section */
 		2591B6C71B411FDB1EC24A26 /* Pods.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.release.xcconfig; path = "Pods/Target Support Files/Pods/Pods.release.xcconfig"; sourceTree = "<group>"; };
 		4B4E634B02B758AEDFC1F484 /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
+		4C071D841CEC220300EFEE93 /* JHGameViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JHGameViewController.h; sourceTree = "<group>"; };
+		4C071D851CEC220300EFEE93 /* JHGameViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = JHGameViewController.m; sourceTree = "<group>"; };
 		4C59E6FB1CDFB4FB001A1103 /* JHNeuralSim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JHNeuralSim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C59E6FE1CDFB4FB001A1103 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		4C59E6FF1CDFB4FB001A1103 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -125,6 +128,8 @@
 				4C59E6FF1CDFB4FB001A1103 /* AppDelegate.m */,
 				4C59E7311CDFE01C001A1103 /* JHConstants.h */,
 				4C64D7A61CE20A7100A7CDB6 /* JHConstants.m */,
+				4C071D841CEC220300EFEE93 /* JHGameViewController.h */,
+				4C071D851CEC220300EFEE93 /* JHGameViewController.m */,
 				4C59E7041CDFB4FB001A1103 /* GameScene.h */,
 				4C59E7051CDFB4FB001A1103 /* GameScene.m */,
 				4C59E7281CDFDC3B001A1103 /* JHActorNode.h */,
@@ -348,6 +353,7 @@
 				4C59E7061CDFB4FB001A1103 /* GameScene.m in Sources */,
 				4C64D7A71CE20A7100A7CDB6 /* JHConstants.m in Sources */,
 				4C9AC6D31CE0103C006159AC /* JHGameNode.m in Sources */,
+				4C071D861CEC220300EFEE93 /* JHGameViewController.m in Sources */,
 				4C59E7001CDFB4FB001A1103 /* AppDelegate.m in Sources */,
 				4C64D7B61CE5712A00A7CDB6 /* JHGameBoard.m in Sources */,
 				4C64D7B31CE5711100A7CDB6 /* JHGame.m in Sources */,

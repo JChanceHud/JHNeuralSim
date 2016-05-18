@@ -17,13 +17,14 @@
 
 @end
 
-@interface JHNeuralNetwork : NSObject <NSCopying>
+@interface JHNeuralNetwork : NSObject <NSCopying, NSCoding>
 
 - (instancetype)initWithLayerStructure:(NSArray <NSNumber *> *)layerStructure;
 //                           weights:(NSArray <NSNumber *> *)weights;
 
 - (instancetype)initWithLayerStructure:(NSArray<NSNumber *> *)layerStructure
                                weights:(double*)weights;
+- (instancetype)initWithData:(NSData*)data;
 
 @property (nonatomic, readonly) NSMutableArray <NSNumber *> *weights;
 
@@ -59,7 +60,6 @@
 @interface JHNeuron : NSObject
 
 - (instancetype)initWithInputCount:(NSUInteger)inputCount weightPtr:(double*)ptr offset:(int)offset;
-- (double)sigmoidValue:(double*)inputs;
 - (double)singleSigmoidValue:(double)input;
 
 @property (nonatomic, readonly) NSUInteger weightCount;
