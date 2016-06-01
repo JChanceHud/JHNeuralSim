@@ -9,12 +9,16 @@
 #import <Foundation/Foundation.h>
 #import "JHConstants.h"
 
+//const NSInteger JHGameBoardTileTypeUnknown = 0;
+//const NSInteger JHGameBoardTileTypeGrass = 50;
+//const NSInteger JHGameBoardTileTypeWall = 100;
+//
 typedef enum : NSInteger {
-    JHGameBoardTileTypeUnknown,
-    JHGameBoardTileTypeGrass,
+    JHGameBoardTileTypeUnknown = 0,
+    JHGameBoardTileTypeGrass = 50,
     JHGameBoardTileTypePlayer,
     JHGameBoardTileTypeCake,
-    JHGameBoardTileTypeWall,
+    JHGameBoardTileTypeWall = 100,
     TILE_TYPE_COUNT
 } JHGameBoardTileType;
 
@@ -34,6 +38,9 @@ typedef enum : NSInteger {
 - (JHGameBoardTileType)tileAtX:(int)x Y:(int)y;
 
 - (NSArray <NSNumber*> *)data;
-- (double*)dataRelativeToX:(int)x Y:(int)y;
+- (double*)dataRelativeToX:(int)x Y:(int)y outputLength:(int)length;
+
+- (int**)board;
+- (void)setBoard:(int**)board;
 
 @end

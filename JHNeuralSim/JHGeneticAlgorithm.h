@@ -12,6 +12,8 @@
 @class JHGeneticAlgorithm;
 @class BFTask;
 
+dispatch_queue_t geneticQueue();
+
 @protocol JHGeneticAlgorithmObserver <NSObject>
 
 - (void)geneticAlgorithmWillBeginBreeding:(JHGeneticAlgorithm*)algorithm;
@@ -32,14 +34,14 @@
                          crossoverRate:(double)crossoverRate
                            maxMutation:(double)maxMutation;
 
-@property (nonatomic, readonly) NSUInteger currentGeneration;
-@property (nonatomic, readonly) double averageFitness;
+@property (readonly) NSUInteger currentGeneration;
+@property (readonly) double averageFitness;
 
-@property (nonatomic, weak) id <JHGeneticAlgorithmObserver> observer;
+@property (weak) id <JHGeneticAlgorithmObserver> observer;
 
-@property (nonatomic, readonly) BOOL hasCalculatedFitnessesForGeneration;
-- (void)calculateFitnesses;
-- (void)epoch;
+@property (readonly) BOOL hasCalculatedFitnessesForGeneration;
+- (BFTask*)calculateFitnesses;
+- (BFTask*)epoch;
 - (void)setCoach:(id <JHNeuralNetworkCoach>)coach;
 
 - (BFTask*)saveToFile:(NSString*)file;

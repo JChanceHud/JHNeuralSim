@@ -20,7 +20,7 @@
 - (instancetype)initWithWidth:(int)width height:(int)height {
     if ((self = [super init])) {
         _board = calloc(width, sizeof(int*));
-        for (int x = 0; x < height; x++) {
+        for (int x = 0; x < width; x++) {
             _board[x] = calloc(height, sizeof(int));
         }
         _boardWidth = width;
@@ -108,7 +108,7 @@
     return arr;
 }
 
-- (double*)dataRelativeToX:(int)x Y:(int)y {
+- (double*)dataRelativeToX:(int)x Y:(int)y outputLength:(int)length {
     int index = 0;
     _dataBuffer[index] = _board[x][y];
     index++;
@@ -118,7 +118,7 @@
     int currentDirection = 0;
     // 0 = right, 1 = down, 2 = left, 3 = up
     while (1) {
-        if (currentDistance > 25 || index > self.boardHeight*self.boardWidth) {
+        if (currentDistance > 25 || index > self.boardHeight*self.boardWidth || index >= length) {
             break;
         }
         if (currentX == x && currentY <= y) {

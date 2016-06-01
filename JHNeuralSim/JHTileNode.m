@@ -18,7 +18,7 @@
 
 - (void)setTileType:(JHGameBoardTileType)tileType {
     _tileType = tileType;
-    if (tileType == JHGameBoardTileTypeGrass) {
+    if (tileType == JHGameBoardTileTypeUnknown) {
         self.color = [NSColor greenColor];
     } else if (tileType == JHGameBoardTileTypePlayer) {
         self.color = [NSColor whiteColor];

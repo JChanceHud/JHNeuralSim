@@ -20,6 +20,8 @@
 @property (nonatomic, strong) IBOutlet NSProgressIndicator *activityIndicator;
 @property (nonatomic, strong) IBOutlet NSButton *saveButton;
 @property (nonatomic, strong) IBOutlet NSButton *pauseButton;
+@property (nonatomic, strong) IBOutlet NSButton *drawCheckbox;
+@property (nonatomic, strong) IBOutlet NSTextField *minStepTimeField;
 
 @property (nonatomic, strong) JHGame *game;
 @property (nonatomic, strong) JHGameNode *gameNode;
@@ -57,6 +59,7 @@
 }
 
 - (JHGeneticAlgorithm*)loadGeneticAlgorithm {
+    return nil;
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *path = [[[paths objectAtIndex:0] stringByAppendingPathComponent:@"NeuralNetworks"] stringByAppendingPathComponent:@"SavedGenetics"];
     BOOL directory;
@@ -78,8 +81,10 @@
 }
 
 - (void)addStringToTextView:(NSString*)string {
-    [self.textView setString:[NSString stringWithFormat:@"%@\n%@", self.textView.string, string]];
-    [self.textView scrollRangeToVisible:NSMakeRange(self.textView.string.length, 0)];
+    if (self.drawCheckbox.state == NSOnState) {
+        [self.textView setString:[NSString stringWithFormat:@"%@\n%@", self.textView.string, string]];
+        [self.textView scrollRangeToVisible:NSMakeRange(self.textView.string.length, 0)];
+    }
 }
 
 - (void)game:(JHGame *)game calculatedFitnessForNetwork:(JHNeuralNetwork *)network {
@@ -103,7 +108,23 @@
 }
 
 - (void)gameBoardUpdated:(JHGame *)game {
-    [self.gameNode gameBoardUpdated:game];
+    if (self.drawCheckbox.state == NSOnState) {
+        [self.gameNode gameBoardUpdated:game];
+    }
+}
+
+- (IBAction)drawChanged:(NSButton*)sender {
+    if (sender.state == NSOffState) {
+        self.game.minStepTime = 0.0;
+    } else {
+        self.game.minStepTime = self.minStepTimeField.stringValue.doubleValue;
+    }
+}
+
+- (IBAction)minStepTimeChanged:(NSTextField*)sender {
+    if (self.drawCheckbox.state == NSOnState) {
+        [self.game setMinStepTime:[sender.stringValue doubleValue]];
+    }
 }
 
 - (void)pause:(NSButton *)sender {

@@ -132,6 +132,7 @@
     network.mutationRate = self.mutationRate;
     network.maxMutation = self.maxMutation;
     network.crossoverRate = self.crossoverRate;
+    network.minStepTime = self.minStepTime;
     return network;
 }
 

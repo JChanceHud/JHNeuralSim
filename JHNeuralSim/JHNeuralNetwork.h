@@ -37,6 +37,8 @@
 @property (nonatomic, assign) double maxMutation;
 @property (nonatomic, assign) double crossoverRate;
 
+@property (nonatomic, assign) double minStepTime;
+
 - (NSArray <JHNeuralNetwork *>*)mateWith:(id)network;
 
 @end

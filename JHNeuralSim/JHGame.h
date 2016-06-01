@@ -27,10 +27,15 @@
 
 - (instancetype)initWithGeneticAlgorithm:(JHGeneticAlgorithm*)algorithm;
 
-@property (nonatomic, readonly) JHGameBoard *board;
+@property (readonly) Vec2 boardSize;
+@property (readonly) JHGameBoard *board;
 @property (nonatomic, readonly) JHGeneticAlgorithm *evolver;
 
+@property (assign) double minStepTime;
+
 @property (nonatomic, weak) id <JHGameObserver> observer;
+
+- (BOOL)visitedTileAtX:(int)x Y:(int)y;
 
 - (void)beginSimulating;
 - (BFTask*)stopSimulating;

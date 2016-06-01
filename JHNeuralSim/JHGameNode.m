@@ -59,6 +59,9 @@
     for (int x = 0; x < game.board.boardWidth; x++) {
         for (int y = 0; y < game.board.boardHeight; y++) {
             [self.tiles[x][y] setTileType:[game.board tileAtX:x Y:y]];
+            if ([game visitedTileAtX:x Y:y]) {
+                [self.tiles[x][y] setTileType:JHGameBoardTileTypeCake];
+            }
         }
     }
 }

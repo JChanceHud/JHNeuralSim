@@ -8,67 +8,75 @@
 
 #import "JHGame.h"
 
-dispatch_queue_t gameQueue() {
-    static dispatch_queue_t _gameQueue;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        _gameQueue = dispatch_queue_create("com.JHNeuralSim.JHGame", DISPATCH_QUEUE_SERIAL);
-    });
-    return _gameQueue;
+@interface JHGame () {
+    int **_visitedTiles;
 }
 
-@interface JHGame () {
-    Vec2 *_visitedTiles;
-}
+@property (strong) JHGameBoard *board;
 
 @property (assign) BOOL simulating;
 @property (assign) int currentBestScore;
 @property (assign) Vec2 playerPosition;
+@property (assign) Vec2 lastPosition;
+@property (assign) Vec2 *initialPlayerPositions;
+@property (strong) NSMutableArray *initialBoards;
+@property (assign) int currentInitialPlayerPosition;
+@property (assign) NSUInteger lastStepCount;
 
 @end
 
 @implementation JHGame
 
 - (instancetype)init {
-    if ((self = [super init])) {
-        _visitedTiles = calloc(100, sizeof(Vec2));
-        _board = [[JHGameBoard alloc] initWithWidth:50 height:50];
-        [self resetBoard];
-        _evolver = [[JHGeneticAlgorithm alloc] initWithLayerStructure:@[@2500, @4000, @4000, @3] generationSize:10 mutationRate:0.2 crossoverRate:0.7 maxMutation:0.2];
-        [_evolver setCoach:self];
-    }
-    return self;
+    return [self initWithGeneticAlgorithm:nil];
 }
 
 - (instancetype)initWithGeneticAlgorithm:(JHGeneticAlgorithm*)algorithm {
     if ((self = [super init])) {
-        _visitedTiles = calloc(100, sizeof(Vec2));
-        _board = [[JHGameBoard alloc] initWithWidth:50 height:50];
-        [self resetBoard];
+        _minStepTime = 0.02;
+        _boardSize = (Vec2){.x = 50, .y = 50};
+        _initialPlayerPositions = calloc(10, sizeof(Vec2));
+        _initialBoards = [NSMutableArray new];
+        _visitedTiles = calloc(_boardSize.x, sizeof(int*));
+        for (int x = 0; x < _boardSize.x; x++ ) {
+            _visitedTiles[x] = calloc(_boardSize.y, sizeof(int));
+        }
+        _board = [[JHGameBoard alloc] initWithWidth:_boardSize.x height:_boardSize.y];
         _evolver = algorithm;
         if ( ! _evolver) {
-            _evolver = [[JHGeneticAlgorithm alloc] initWithLayerStructure:@[@2500, @4000, @4000, @3] generationSize:10 mutationRate:0.2 crossoverRate:0.7 maxMutation:0.2];
+            _evolver = [[JHGeneticAlgorithm alloc] initWithLayerStructure:@[@9, @170, @1] generationSize:30 mutationRate:0.15 crossoverRate:0.8 maxMutation:0.2];
         }
         [_evolver setCoach:self];
     }
     return self;
 }
 
+- (BOOL)visitedTileAtX:(int)x Y:(int)y {
+    return _visitedTiles[x][y] != 0;
+}
+
 - (void)resetBoard {
-    [self.board setAllTiles:JHGameBoardTileTypeGrass];
-    [self.board setBorderTile:JHGameBoardTileTypeWall];
-    _playerPosition.x = 25;
-    _playerPosition.y = 25;
-    
-//    for (int x = 0; x < 50; x++) {
-//        int cakeX = arc4random() % self.board.boardWidth;
-//        int cakeY = arc4random() % self.board.boardHeight;
-//        [self.board setTile:JHGameBoardTileTypeCake atX:cakeX Y:cakeY];
-//    }
-    for (int x = 0; x< 100; x++) {
-        _visitedTiles[x] = (Vec2){.x = 25,.y = 25};
+    self.lastPosition = (Vec2){.x=-1,.y=-1};
+    _playerPosition.x = _initialPlayerPositions[_currentInitialPlayerPosition].x;
+    _playerPosition.y = _initialPlayerPositions[_currentInitialPlayerPosition].y;
+    self.board = self.initialBoards[_currentInitialPlayerPosition];
+    for (int x = 0; x < self.boardSize.x; x++) {
+        memset(_visitedTiles[x], 0, self.boardSize.y*sizeof(int));
     }
-//    self.currentBestScore = abs(playerX - cakeX) + abs(playerY - cakeY);
+}
+
+- (JHGameBoard*)generateBoard {
+    JHGameBoard *board = [[JHGameBoard alloc] initWithWidth:50 height:50];
+    [board setAllTiles:JHGameBoardTileTypeUnknown];
+    [board setBorderTile:JHGameBoardTileTypeWall];
+    for (int x = 1; x < board.boardWidth-1; x++) {
+        for (int y = 1; y < board.boardHeight-1; y++) {
+            if (randDecimal() < 0.2f) {
+                [board setTile:JHGameBoardTileTypeWall atX:x Y:y];
+            }
+        }
+    }
+    return board;
 }
 
 - (Vec2)currentCakeIndexPath {
@@ -80,50 +88,75 @@ dispatch_queue_t gameQueue() {
 }
 
 - (void)network:(JHNeuralNetwork *)network generatedOutput:(double*)output stepNumber:(NSInteger)stepNumber {
-    Vec2 moveDirection;
-    moveDirection.x = output[0]>0.5?1:-1;
-    moveDirection.y = output[1]>0.5?1:-1;
-    if (output[2] > 0.5) {
-        moveDirection.x = 0;
+    __block BOOL canContinue = NO;
+    if (self.minStepTime == 0.0) {
+        canContinue = YES;
     } else {
-        moveDirection.y = 0;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.minStepTime * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            canContinue = YES;
+        });
+    }
+    double sum = output[0];
+    Vec2 moveDirection = (Vec2){.x=0,.y=0};
+    if (sum < 0.25) {
+        moveDirection.x = -1;
+    } else if (sum >= 0.25 && sum < 0.5) {
+        moveDirection.y = 1;
+    } else if (sum >= 0.5 && sum < 0.75) {
+        moveDirection.x = 1;
+    } else {
+        moveDirection.y = -1;
     }
     Vec2 player = self.playerPosition;
     player.x += moveDirection.x;
     player.x = MIN(MAX(0, player.x), self.board.boardWidth-1);
     player.y += moveDirection.y;
     player.y = MIN(MAX(0, player.y), self.board.boardHeight-1);
-    dispatch_sync(dispatch_get_main_queue(), ^{
+    dispatch_async(dispatch_get_main_queue(), ^{
         [self.observer gameBoardUpdated:self];
     });
     if ([self.board tileAtX:player.x Y:player.y] == JHGameBoardTileTypeWall) {
-        network.fitness = MAX(network.fitness,0);
-        [network finishCalculatingFitness];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.observer game:self calculatedFitnessForNetwork:network];
-        });
-        NSLog(@"Fitness: %f", network.fitness);
+        self.currentInitialPlayerPosition++;
+        self.lastStepCount = stepNumber;
+        if (self.currentInitialPlayerPosition == 10) {
+            self.lastStepCount = 0;
+            self.currentInitialPlayerPosition = 0;
+            network.fitness = MAX(network.fitness,0);
+            [network finishCalculatingFitness];
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                [self.observer game:self calculatedFitnessForNetwork:network];
+            });
+        }
         [self resetBoard];
+        while (!canContinue){}
         return;
-    } else if ([self.board tileAtX:player.x Y:player.y] == JHGameBoardTileTypeGrass) {
+    } else if (_visitedTiles[player.x][player.y] == 0) {
         network.fitness += 1;
     }
-    if (stepNumber >= 99) {
-        network.fitness = MAX(network.fitness,0);
-        NSLog(@"Fitness: %f", network.fitness);
-        [network finishCalculatingFitness];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.observer game:self calculatedFitnessForNetwork:network];
-        });
+    if ((self.lastPosition.x == player.x && self.lastPosition.y == player.y) || _visitedTiles[player.x][player.y] > 10) {
+        self.currentInitialPlayerPosition++;
+        self.lastStepCount = stepNumber;
+        if (self.currentInitialPlayerPosition == 10) {
+            self.lastStepCount = 0;
+            self.currentInitialPlayerPosition = 0;
+            network.fitness = MAX(network.fitness,0);
+            [network finishCalculatingFitness];
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                [self.observer game:self calculatedFitnessForNetwork:network];
+            });
+        }
         [self resetBoard];
+        while (!canContinue){}
         return;
     }
+    self.lastPosition = self.playerPosition;
     self.playerPosition = player;
-    [self.board setTile:JHGameBoardTileTypeCake atX:player.x Y:player.y];
+    _visitedTiles[player.x][player.y]++;
+    while (!canContinue){}
 }
 
 - (double*)inputForNetwork:(JHNeuralNetwork *)network stepNumber:(NSInteger)stepNumber {
-    return [self.board dataRelativeToX:self.playerPosition.x Y:self.playerPosition.y];
+    return [self.board dataRelativeToX:self.playerPosition.x Y:self.playerPosition.y outputLength:9];
 }
 
 - (void)beginSimulating {
@@ -138,21 +171,31 @@ dispatch_queue_t gameQueue() {
     if ( ! self.simulating) {
         return;
     }
-    [[[[BFTask taskWithResult:nil] continueWithExecutor:[BFExecutor executorWithDispatchQueue:gameQueue()] withSuccessBlock:^id _Nullable(BFTask * _Nonnull task) {
-        if ( ! self.simulating) {
-            return nil;
+    [[[[BFTask taskWithResult:nil] continueWithExecutor:[BFExecutor mainThreadExecutor] withSuccessBlock:^id _Nullable(BFTask * _Nonnull task) {
+        [self.initialBoards removeAllObjects];
+        for (int x = 0; x < 10; x++) {
+            JHGameBoard *b = [self generateBoard];
+            [self.initialBoards addObject:b];
+            Vec2 p;
+            do {
+                p = (Vec2){.x = arc4random_uniform(b.boardWidth-1)+1, .y = arc4random_uniform(b.boardWidth-1)+1};
+            } while ([b tileAtX:p.x Y:p.y] == JHGameBoardTileTypeWall);
+            _initialPlayerPositions[x].x = p.x;
+            _initialPlayerPositions[x].y = p.y;
         }
+        self.currentInitialPlayerPosition = 0;
+        [self resetBoard];
         if ( ! [self.evolver hasCalculatedFitnessesForGeneration]) {
-            [self.evolver calculateFitnesses];
+            return [self.evolver calculateFitnesses];
+        } else {
+            return nil;
         }
-        return nil;
-    }] continueWithExecutor:[BFExecutor executorWithDispatchQueue:gameQueue()] withBlock:^id _Nullable(BFTask * _Nonnull task) {
+    }] continueWithBlock:^id _Nullable(BFTask * _Nonnull task) {
         if ( ! self.simulating) {
             return nil;
         }
-        [self.evolver epoch];
-        return nil;
-    }] continueWithExecutor:[BFExecutor mainThreadExecutor] withSuccessBlock:^id _Nullable(BFTask * _Nonnull task) {
+        return [self.evolver epoch];
+    }] continueWithExecutor:[BFExecutor mainThreadExecutor] withBlock:^id _Nullable(BFTask * _Nonnull task) {
         [self.observer gameEpochPassed:self];
         [self _beginSimulating];
         return nil;
@@ -160,7 +203,7 @@ dispatch_queue_t gameQueue() {
 }
 
 - (BFTask*)stopSimulating {
-    return [[BFTask taskWithResult:nil] continueWithExecutor:[BFExecutor executorWithDispatchQueue:gameQueue()] withSuccessBlock:^id _Nullable(BFTask * _Nonnull task) {
+    return [[BFTask taskWithResult:nil] continueWithExecutor:[BFExecutor executorWithDispatchQueue:geneticQueue()] withSuccessBlock:^id _Nullable(BFTask * _Nonnull task) {
         self.simulating = NO;
         return @(self.simulating);
     }];
